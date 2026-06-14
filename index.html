@@ -217,12 +217,9 @@
 
   /* テーブル */
   .table-wrap {
-    width: 100%; max-width: 700px; max-height: 520px;
-    overflow-y: auto; border: 1px solid #333; border-radius: 10px; display: none;
+    width: 100%; max-width: 700px;
+    border: 1px solid #333; border-radius: 10px; display: none;
   }
-  .table-wrap::-webkit-scrollbar { width: 6px; }
-  .table-wrap::-webkit-scrollbar-track { background: #111; }
-  .table-wrap::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
   table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
   thead th {
     background: #1a1a2e; color: #ffd700;
@@ -305,8 +302,8 @@
       <tr>
         <th>大当たり<br>回数</th>
         <th>種別</th>
-        <th>大当たり<br>競技数</th>
-        <th>競技数<br>合計</th>
+        <th>大当たり<br>遊戯数</th>
+        <th>遊戯数<br>合計</th>
         <th>ぶどう<br>累計</th>
       </tr>
     </thead>
@@ -375,13 +372,6 @@ function simulate(totalSpins, d) {
   for (let spin = 1; spin <= totalSpins; spin++) {
     sinceLastBonus++;
 
-    // 小役抽選（各独立）
-    if (Math.random() < P_REPLAY)   replayTotal++;
-    if (Math.random() < d.pGrape)   grapeTotal++;
-    if (Math.random() < d.pCherry)  cherryTotal++;
-    if (Math.random() < d.pPierrot) pierrotTotal++;
-    if (Math.random() < d.pBell)    bellTotal++;
-
     // ボーナス抽選（1乱数でBIG/REG/ハズレを振り分け）
     const r = Math.random();
     let bonusType = null;
@@ -389,6 +379,8 @@ function simulate(totalSpins, d) {
     else if (r < d.pBig + d.pReg)  bonusType = 'Reg';
 
     if (bonusType) {
+      // ボーナス成立スピン: チェリー重複のみあり、他役とは重複しない
+      if (Math.random() < d.pCherry) cherryTotal++;
       bonusCount++;
       rows.push({
         num: bonusCount,
@@ -398,6 +390,13 @@ function simulate(totalSpins, d) {
         grape: grapeTotal,
       });
       sinceLastBonus = 0;
+    } else {
+      // 通常スピン: 全小役を独立抽選
+      if (Math.random() < P_REPLAY)   replayTotal++;
+      if (Math.random() < d.pGrape)   grapeTotal++;
+      if (Math.random() < d.pCherry)  cherryTotal++;
+      if (Math.random() < d.pPierrot) pierrotTotal++;
+      if (Math.random() < d.pBell)    bellTotal++;
     }
   }
 
