@@ -334,6 +334,7 @@ const CHERRY_PAYOUT = 1;    // チェリー払い出し
 const PIERROT_PAYOUT= 10;   // ピエロ払い出し
 const BELL_PAYOUT   = 14;   // ベル払い出し
 const BET_PER_SPIN  = 3;    // 毎ゲーム消費枚数
+const P_REPLAY      = 1 / 7.30;  // リプレー確率（全設定共通）
 
 let currentSetting = 6;
 
@@ -368,13 +369,14 @@ function updateProbInfo() {
 // ─── シミュレーション ─────────────────────────────────────────────
 function simulate(totalSpins, d) {
   const rows = [];
-  let bonusCount = 0, grapeTotal = 0, cherryTotal = 0, pierrotTotal = 0, bellTotal = 0;
+  let bonusCount = 0, grapeTotal = 0, cherryTotal = 0, pierrotTotal = 0, bellTotal = 0, replayTotal = 0;
   let sinceLastBonus = 0;
 
   for (let spin = 1; spin <= totalSpins; spin++) {
     sinceLastBonus++;
 
     // 小役抽選（各独立）
+    if (Math.random() < P_REPLAY)   replayTotal++;
     if (Math.random() < d.pGrape)   grapeTotal++;
     if (Math.random() < d.pCherry)  cherryTotal++;
     if (Math.random() < d.pPierrot) pierrotTotal++;
@@ -399,18 +401,19 @@ function simulate(totalSpins, d) {
     }
   }
 
-  return { rows, grapeTotal, cherryTotal, pierrotTotal, bellTotal };
+  return { rows, grapeTotal, cherryTotal, pierrotTotal, bellTotal, replayTotal };
 }
 
-function calcProfit(rows, totalSpins, budgetYen, grapeTotal, cherryTotal, pierrotTotal, bellTotal) {
+function calcProfit(rows, totalSpins, budgetYen, grapeTotal, cherryTotal, pierrotTotal, bellTotal, replayTotal) {
   let bigCount = 0, regCount = 0;
   for (const r of rows) { if (r.type === 'Big') bigCount++; else regCount++; }
 
   const paidOut = bigCount * BIG_PAYOUT + regCount * REG_PAYOUT
-                + grapeTotal  * GRAPE_PAYOUT
-                + cherryTotal * CHERRY_PAYOUT
-                + pierrotTotal* PIERROT_PAYOUT
-                + bellTotal   * BELL_PAYOUT;
+                + grapeTotal   * GRAPE_PAYOUT
+                + cherryTotal  * CHERRY_PAYOUT
+                + pierrotTotal * PIERROT_PAYOUT
+                + bellTotal    * BELL_PAYOUT
+                + replayTotal  * BET_PER_SPIN;  // リプレーは賭け枚数が戻る
   const consumed   = totalSpins * BET_PER_SPIN;
   const diffMedals = paidOut - consumed;
 
@@ -457,9 +460,9 @@ function startSimulation() {
   }, 30);
 
   setTimeout(() => {
-    const { rows, grapeTotal, cherryTotal, pierrotTotal, bellTotal } = simulate(totalSpins, d);
+    const { rows, grapeTotal, cherryTotal, pierrotTotal, bellTotal, replayTotal } = simulate(totalSpins, d);
     const { bigCount, regCount, diffMedals, startMedals, profitYen } =
-      calcProfit(rows, totalSpins, budgetYen, grapeTotal, cherryTotal, pierrotTotal, bellTotal);
+      calcProfit(rows, totalSpins, budgetYen, grapeTotal, cherryTotal, pierrotTotal, bellTotal, replayTotal);
 
     clearInterval(interval);
     progressBar.style.width = '100%';
@@ -514,6 +517,8 @@ function startSimulation() {
       <div class="summary-item"><label>チェリー確率</label><span class="val val-cherry">1/${f(cherryTotal, totalSpins)}</span></div>
       <div class="summary-item"><label>ピエロ累計</label><span class="val val-pierrot">${pierrotTotal.toLocaleString()} 回</span></div>
       <div class="summary-item"><label>ベル累計</label><span class="val val-bell">${bellTotal.toLocaleString()} 回</span></div>
+      <div class="summary-item"><label>リプレー累計</label><span class="val">${replayTotal.toLocaleString()} 回</span></div>
+      <div class="summary-item"><label>リプレー確率</label><span class="val">1/${f(replayTotal, totalSpins)}</span></div>
     `;
 
     summaryEl.style.display = 'block';
