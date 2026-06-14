@@ -39,13 +39,56 @@
     border: 1px solid #333;
     border-radius: 8px;
     padding: 12px 24px;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
     font-size: 0.8rem;
     color: #888;
     text-align: center;
     line-height: 1.8;
+    max-width: 700px;
+    width: 100%;
   }
   .prob-info span { color: #ffd700; }
+
+  /* 入力フォーム */
+  .input-panel {
+    background: #111;
+    border: 1px solid #2a2a4a;
+    border-radius: 10px;
+    padding: 18px 28px;
+    margin-bottom: 20px;
+    max-width: 700px;
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px 24px;
+  }
+  .input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .input-group label {
+    font-size: 0.75rem;
+    color: #aaa;
+    letter-spacing: 1px;
+  }
+  .input-group .hint {
+    font-size: 0.68rem;
+    color: #555;
+  }
+  .input-group input {
+    background: #0a0a1a;
+    border: 1px solid #444;
+    border-radius: 6px;
+    color: #ffd700;
+    font-family: 'Courier New', monospace;
+    font-size: 1rem;
+    padding: 8px 12px;
+    outline: none;
+    transition: border-color 0.2s;
+    width: 100%;
+  }
+  .input-group input:focus { border-color: #ff4da6; }
 
   .start-btn {
     background: linear-gradient(135deg, #ff4da6, #c0006a);
@@ -94,6 +137,51 @@
     margin-bottom: 16px;
     display: none;
   }
+
+  /* 収支パネル */
+  .profit-panel {
+    display: none;
+    background: #0d0d1a;
+    border-radius: 10px;
+    padding: 18px 28px;
+    margin-bottom: 16px;
+    max-width: 700px;
+    width: 100%;
+    border: 2px solid #333;
+  }
+  .profit-panel h2 {
+    font-size: 0.85rem;
+    color: #888;
+    letter-spacing: 3px;
+    margin-bottom: 12px;
+  }
+  .profit-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .profit-item {
+    background: #111;
+    border-radius: 6px;
+    padding: 8px 10px;
+    text-align: center;
+  }
+  .profit-item label { font-size: 0.68rem; color: #666; display: block; margin-bottom: 4px; }
+  .profit-item .pval { font-size: 0.9rem; font-weight: bold; color: #fff; }
+
+  .profit-result {
+    text-align: center;
+    padding: 14px;
+    border-radius: 8px;
+    font-size: 1.5rem;
+    font-weight: bold;
+    letter-spacing: 2px;
+  }
+  .profit-result.plus  { background: #001a00; border: 1px solid #00cc44; color: #00ff55; text-shadow: 0 0 16px #00ff55; }
+  .profit-result.minus { background: #1a0000; border: 1px solid #cc2200; color: #ff4422; text-shadow: 0 0 16px #ff4422; }
+  .profit-result.zero  { background: #111; border: 1px solid #555; color: #aaa; }
+  .profit-result small { display: block; font-size: 0.75rem; color: inherit; opacity: 0.75; margin-top: 4px; letter-spacing: 1px; }
 
   .summary {
     display: none;
@@ -174,13 +262,27 @@
 <body>
 
 <h1>🎰 マイジャグラー 🎰</h1>
-<div class="subtitle">設定6 ／ 8,000G シミュレーター</div>
+<div class="subtitle">設定6 シミュレーター</div>
 
 <div class="prob-info">
   BIG確率: <span>1/240.9</span> &nbsp;|&nbsp;
   REG確率: <span>1/240.9</span> &nbsp;|&nbsp;
   合成確率: <span>1/120.5</span> &nbsp;|&nbsp;
   ぶどう: <span>1/6.5</span>
+</div>
+
+<!-- 入力パネル -->
+<div class="input-panel">
+  <div class="input-group">
+    <label>💴 予算（円）</label>
+    <input type="number" id="budgetInput" value="30000" min="1000" step="1000">
+    <span class="hint">千円46枚貸 ／ 等価交換</span>
+  </div>
+  <div class="input-group">
+    <label>🎰 遊戯回転数（G）</label>
+    <input type="number" id="spinInput" value="8000" min="100" step="100">
+    <span class="hint">シミュレートする総ゲーム数</span>
+  </div>
 </div>
 
 <button class="start-btn" id="startBtn" onclick="startSimulation()">遊 戯 開 始</button>
@@ -190,8 +292,15 @@
 </div>
 <div class="progress-label" id="progressLabel"></div>
 
+<!-- 収支パネル -->
+<div class="profit-panel" id="profitPanel">
+  <h2>💰 収 支 計 算</h2>
+  <div class="profit-grid" id="profitGrid"></div>
+  <div class="profit-result" id="profitResult"></div>
+</div>
+
 <div class="summary" id="summary">
-  <h2>✨ 最終結果 ✨</h2>
+  <h2>✨ ボーナス結果 ✨</h2>
   <div class="summary-grid" id="summaryGrid"></div>
 </div>
 
@@ -215,23 +324,25 @@
 const P_BIG   = 1 / 240.9;
 const P_REG   = 1 / 240.9;
 const P_GRAPE = 1 / 6.5;
-const TOTAL_SPINS = 8000;
 
-function simulate() {
+// 差枚数計算定数（等価交換）
+const MEDALS_PER_1000YEN = 46;   // 千円46枚貸
+const BIG_PAYOUT  = 240;          // BIG純増枚数
+const REG_PAYOUT  = 96;           // REG純増枚数
+const GRAPE_PAYOUT = 6;           // ぶどう払い出し枚数
+const BET_PER_SPIN = 3;           // 1G消費枚数
+
+function simulate(totalSpins) {
   const rows = [];
   let bonusCount = 0;
-  let totalSpins = 0;
   let grapeTotal = 0;
   let sinceLastBonus = 0;
 
-  for (let spin = 1; spin <= TOTAL_SPINS; spin++) {
-    totalSpins = spin;
+  for (let spin = 1; spin <= totalSpins; spin++) {
     sinceLastBonus++;
 
-    // ぶどう判定（ボーナスと独立）
     if (Math.random() < P_GRAPE) grapeTotal++;
 
-    // ボーナス判定
     const r = Math.random();
     let bonusType = null;
     if (r < P_BIG) {
@@ -246,7 +357,7 @@ function simulate() {
         num: bonusCount,
         type: bonusType,
         spins: sinceLastBonus,
-        total: totalSpins,
+        total: spin,
         grape: grapeTotal,
       });
       sinceLastBonus = 0;
@@ -256,8 +367,33 @@ function simulate() {
   return rows;
 }
 
+function calcProfit(rows, totalSpins, budgetYen) {
+  let bigCount = 0, regCount = 0;
+  const grapeTotal = rows.length > 0 ? rows[rows.length - 1].grape : 0;
+  for (const r of rows) {
+    if (r.type === 'Big') bigCount++; else regCount++;
+  }
+
+  // 差枚数 = ボーナス払い出し + ぶどう払い出し - 総消費枚数
+  const paidOut   = bigCount * BIG_PAYOUT + regCount * REG_PAYOUT + grapeTotal * GRAPE_PAYOUT;
+  const consumed  = totalSpins * BET_PER_SPIN;
+  const diffMedals = paidOut - consumed;
+
+  // 予算を枚数換算
+  const startMedals = Math.floor(budgetYen / 1000) * MEDALS_PER_1000YEN;
+
+  // 等価交換: 差枚数 ÷ 46 × 1000円
+  const profitYen = Math.round((diffMedals / MEDALS_PER_1000YEN) * 1000);
+
+  return { bigCount, regCount, grapeTotal, diffMedals, startMedals, profitYen };
+}
+
 function startSimulation() {
-  const btn = document.getElementById('startBtn');
+  const btn        = document.getElementById('startBtn');
+  const budgetYen  = parseInt(document.getElementById('budgetInput').value, 10) || 30000;
+  const totalSpins = parseInt(document.getElementById('spinInput').value, 10) || 8000;
+
+  if (budgetYen <= 0 || totalSpins <= 0) return;
   btn.disabled = true;
 
   const progressWrap  = document.getElementById('progressWrap');
@@ -267,37 +403,55 @@ function startSimulation() {
   const tableWrap     = document.getElementById('tableWrap');
   const summaryEl     = document.getElementById('summary');
   const summaryGrid   = document.getElementById('summaryGrid');
+  const profitPanel   = document.getElementById('profitPanel');
+  const profitGrid    = document.getElementById('profitGrid');
+  const profitResult  = document.getElementById('profitResult');
 
-  // reset
   tbody.innerHTML = '';
   summaryEl.style.display = 'none';
   tableWrap.style.display = 'none';
+  profitPanel.style.display = 'none';
   progressWrap.style.display = 'block';
   progressLabel.style.display = 'block';
   progressBar.style.width = '0%';
 
-  // アニメーション演出
   let pct = 0;
   const interval = setInterval(() => {
     pct += 4;
     if (pct > 95) pct = 95;
     progressBar.style.width = pct + '%';
-    progressLabel.textContent = `シミュレーション中... ${Math.floor(pct * TOTAL_SPINS / 100).toLocaleString()} / ${TOTAL_SPINS.toLocaleString()} G`;
+    progressLabel.textContent = `シミュレーション中... ${Math.floor(pct * totalSpins / 100).toLocaleString()} / ${totalSpins.toLocaleString()} G`;
   }, 30);
 
-  // 少し遅延してシミュレーション実行（UIが更新されてから）
   setTimeout(() => {
-    const rows = simulate();
+    const rows = simulate(totalSpins);
+    const { bigCount, regCount, grapeTotal, diffMedals, startMedals, profitYen } = calcProfit(rows, totalSpins, budgetYen);
 
     clearInterval(interval);
     progressBar.style.width = '100%';
-    progressLabel.textContent = `完了: ${TOTAL_SPINS.toLocaleString()} G`;
+    progressLabel.textContent = `完了: ${totalSpins.toLocaleString()} G`;
 
-    // テーブル描画（DocumentFragment で高速化）
+    // 収支パネル
+    const endMedals   = startMedals + diffMedals;
+    const sign        = profitYen >= 0 ? '+' : '';
+    const resultClass = profitYen > 0 ? 'plus' : profitYen < 0 ? 'minus' : 'zero';
+
+    profitGrid.innerHTML = `
+      <div class="profit-item"><label>予算</label><span class="pval">${budgetYen.toLocaleString()} 円</span></div>
+      <div class="profit-item"><label>持ちメダル</label><span class="pval">${startMedals.toLocaleString()} 枚</span></div>
+      <div class="profit-item"><label>差枚数</label><span class="pval" style="color:${diffMedals>=0?'#00ff55':'#ff4422'}">${diffMedals>=0?'+':''}${diffMedals.toLocaleString()} 枚</span></div>
+      <div class="profit-item"><label>最終メダル</label><span class="pval">${Math.max(0,endMedals).toLocaleString()} 枚</span></div>
+    `;
+    profitResult.className = `profit-result ${resultClass}`;
+    profitResult.innerHTML = `
+      収支: ${sign}${profitYen.toLocaleString()} 円
+      <small>等価交換（${MEDALS_PER_1000YEN}枚 = 1,000円）</small>
+    `;
+    profitPanel.style.display = 'block';
+
+    // テーブル描画
     const frag = document.createDocumentFragment();
-    let bigCount = 0, regCount = 0;
     for (const r of rows) {
-      if (r.type === 'Big') bigCount++; else regCount++;
       const tr = document.createElement('tr');
       tr.innerHTML =
         `<td class="td-num">${r.num}</td>` +
@@ -311,27 +465,25 @@ function startSimulation() {
 
     // サマリー
     const totalBonus = rows.length;
-    const lastGrape  = rows.length > 0 ? rows[rows.length - 1].grape : 0;
-    const avgBig = bigCount > 0 ? (TOTAL_SPINS / bigCount).toFixed(1) : '-';
-    const avgReg = regCount > 0 ? (TOTAL_SPINS / regCount).toFixed(1) : '-';
-    const avgBonus = totalBonus > 0 ? (TOTAL_SPINS / totalBonus).toFixed(1) : '-';
+    const avgBig   = bigCount   > 0 ? (totalSpins / bigCount).toFixed(1)   : '-';
+    const avgReg   = regCount   > 0 ? (totalSpins / regCount).toFixed(1)   : '-';
+    const avgBonus = totalBonus > 0 ? (totalSpins / totalBonus).toFixed(1) : '-';
+    const avgGrape = grapeTotal > 0 ? (totalSpins / grapeTotal).toFixed(1) : '-';
 
     summaryGrid.innerHTML = `
-      <div class="summary-item"><label>総回転数</label><span class="val">${TOTAL_SPINS.toLocaleString()} G</span></div>
+      <div class="summary-item"><label>総回転数</label><span class="val">${totalSpins.toLocaleString()} G</span></div>
       <div class="summary-item"><label>合算ボーナス</label><span class="val">${totalBonus} 回</span></div>
       <div class="summary-item"><label>合算確率</label><span class="val">1/${avgBonus}</span></div>
       <div class="summary-item"><label>BIG回数</label><span class="val val-big">${bigCount} 回</span></div>
       <div class="summary-item"><label>BIG確率</label><span class="val val-big">1/${avgBig}</span></div>
       <div class="summary-item"><label>REG回数</label><span class="val val-reg">${regCount} 回</span></div>
       <div class="summary-item"><label>REG確率</label><span class="val val-reg">1/${avgReg}</span></div>
-      <div class="summary-item"><label>ぶどう累計</label><span class="val val-grape">${lastGrape.toLocaleString()} 回</span></div>
-      <div class="summary-item"><label>ぶどう確率</label><span class="val val-grape">1/${lastGrape > 0 ? (TOTAL_SPINS / lastGrape).toFixed(1) : '-'}</span></div>
+      <div class="summary-item"><label>ぶどう累計</label><span class="val val-grape">${grapeTotal.toLocaleString()} 回</span></div>
+      <div class="summary-item"><label>ぶどう確率</label><span class="val val-grape">1/${avgGrape}</span></div>
     `;
 
     summaryEl.style.display = 'block';
     tableWrap.style.display = 'block';
-
-    // スクロールをテーブル先頭へ
     tableWrap.scrollTop = 0;
 
     btn.disabled = false;
