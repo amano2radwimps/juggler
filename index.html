@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>マイジャグラー 設定6 シミュレーター</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0a0a1a;
+    color: #e0e0e0;
+    font-family: 'Courier New', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+  }
+
+  h1 {
+    color: #ff4da6;
+    text-shadow: 0 0 20px #ff4da6, 0 0 40px #ff4da6;
+    font-size: 1.8rem;
+    text-align: center;
+    margin-bottom: 6px;
+    letter-spacing: 4px;
+  }
+
+  .subtitle {
+    color: #aaa;
+    font-size: 0.85rem;
+    margin-bottom: 24px;
+    letter-spacing: 2px;
+  }
+
+  .prob-info {
+    background: #111;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 12px 24px;
+    margin-bottom: 24px;
+    font-size: 0.8rem;
+    color: #888;
+    text-align: center;
+    line-height: 1.8;
+  }
+  .prob-info span { color: #ffd700; }
+
+  .start-btn {
+    background: linear-gradient(135deg, #ff4da6, #c0006a);
+    color: #fff;
+    border: none;
+    padding: 16px 48px;
+    font-size: 1.2rem;
+    font-weight: bold;
+    border-radius: 50px;
+    cursor: pointer;
+    letter-spacing: 4px;
+    box-shadow: 0 0 20px #ff4da6aa;
+    transition: all 0.2s;
+    margin-bottom: 24px;
+  }
+  .start-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 32px #ff4da6cc;
+  }
+  .start-btn:disabled {
+    background: #444;
+    box-shadow: none;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .progress-bar-wrap {
+    width: 100%;
+    max-width: 700px;
+    background: #111;
+    border-radius: 8px;
+    height: 10px;
+    margin-bottom: 8px;
+    overflow: hidden;
+    display: none;
+  }
+  .progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #ff4da6, #ffd700);
+    width: 0%;
+    transition: width 0.05s linear;
+  }
+  .progress-label {
+    font-size: 0.8rem;
+    color: #aaa;
+    margin-bottom: 16px;
+    display: none;
+  }
+
+  .summary {
+    display: none;
+    background: #111;
+    border: 1px solid #ff4da666;
+    border-radius: 10px;
+    padding: 16px 28px;
+    margin-bottom: 20px;
+    max-width: 700px;
+    width: 100%;
+    line-height: 2;
+  }
+  .summary h2 {
+    color: #ffd700;
+    text-shadow: 0 0 10px #ffd700;
+    font-size: 1rem;
+    letter-spacing: 3px;
+    margin-bottom: 8px;
+  }
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px 16px;
+    font-size: 0.82rem;
+  }
+  .summary-item label { color: #888; display: block; font-size: 0.72rem; }
+  .summary-item .val { color: #fff; font-size: 1rem; font-weight: bold; }
+  .val-big { color: #ff4da6; }
+  .val-reg { color: #4db8ff; }
+  .val-grape { color: #c084fc; }
+
+  .table-wrap {
+    width: 100%;
+    max-width: 700px;
+    max-height: 520px;
+    overflow-y: auto;
+    border: 1px solid #333;
+    border-radius: 10px;
+    display: none;
+  }
+  .table-wrap::-webkit-scrollbar { width: 6px; }
+  .table-wrap::-webkit-scrollbar-track { background: #111; }
+  .table-wrap::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+  }
+  thead th {
+    background: #1a1a2e;
+    color: #ffd700;
+    padding: 10px 8px;
+    text-align: center;
+    border-bottom: 1px solid #333;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    font-size: 0.75rem;
+    letter-spacing: 1px;
+  }
+  tbody tr:nth-child(even) { background: #0d0d1a; }
+  tbody tr:nth-child(odd)  { background: #111122; }
+  tbody tr:hover { background: #1e1e3a; }
+  td {
+    padding: 6px 8px;
+    text-align: center;
+    border-bottom: 1px solid #1a1a2a;
+  }
+  .td-num    { color: #888; }
+  .td-big    { color: #ff4da6; font-weight: bold; text-shadow: 0 0 6px #ff4da6; }
+  .td-reg    { color: #4db8ff; font-weight: bold; text-shadow: 0 0 6px #4db8ff; }
+  .td-spins  { color: #e0e0e0; }
+  .td-total  { color: #aaa; }
+  .td-grape  { color: #c084fc; }
+</style>
+</head>
+<body>
+
+<h1>🎰 マイジャグラー 🎰</h1>
+<div class="subtitle">設定6 ／ 8,000G シミュレーター</div>
+
+<div class="prob-info">
+  BIG確率: <span>1/240.9</span> &nbsp;|&nbsp;
+  REG確率: <span>1/240.9</span> &nbsp;|&nbsp;
+  合成確率: <span>1/120.5</span> &nbsp;|&nbsp;
+  ぶどう: <span>1/6.5</span>
+</div>
+
+<button class="start-btn" id="startBtn" onclick="startSimulation()">遊 戯 開 始</button>
+
+<div class="progress-bar-wrap" id="progressWrap">
+  <div class="progress-bar" id="progressBar"></div>
+</div>
+<div class="progress-label" id="progressLabel"></div>
+
+<div class="summary" id="summary">
+  <h2>✨ 最終結果 ✨</h2>
+  <div class="summary-grid" id="summaryGrid"></div>
+</div>
+
+<div class="table-wrap" id="tableWrap">
+  <table>
+    <thead>
+      <tr>
+        <th>大当たり<br>回数</th>
+        <th>種別</th>
+        <th>大当たり<br>競技数</th>
+        <th>競技数<br>合計</th>
+        <th>ぶどう<br>累計</th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+</div>
+
+<script>
+// マイジャグラー 設定6 確率
+const P_BIG   = 1 / 240.9;
+const P_REG   = 1 / 240.9;
+const P_GRAPE = 1 / 6.5;
+const TOTAL_SPINS = 8000;
+
+function simulate() {
+  const rows = [];
+  let bonusCount = 0;
+  let totalSpins = 0;
+  let grapeTotal = 0;
+  let sinceLastBonus = 0;
+
+  for (let spin = 1; spin <= TOTAL_SPINS; spin++) {
+    totalSpins = spin;
+    sinceLastBonus++;
+
+    // ぶどう判定（ボーナスと独立）
+    if (Math.random() < P_GRAPE) grapeTotal++;
+
+    // ボーナス判定
+    const r = Math.random();
+    let bonusType = null;
+    if (r < P_BIG) {
+      bonusType = 'Big';
+    } else if (r < P_BIG + P_REG) {
+      bonusType = 'Reg';
+    }
+
+    if (bonusType) {
+      bonusCount++;
+      rows.push({
+        num: bonusCount,
+        type: bonusType,
+        spins: sinceLastBonus,
+        total: totalSpins,
+        grape: grapeTotal,
+      });
+      sinceLastBonus = 0;
+    }
+  }
+
+  return rows;
+}
+
+function startSimulation() {
+  const btn = document.getElementById('startBtn');
+  btn.disabled = true;
+
+  const progressWrap  = document.getElementById('progressWrap');
+  const progressBar   = document.getElementById('progressBar');
+  const progressLabel = document.getElementById('progressLabel');
+  const tbody         = document.getElementById('tbody');
+  const tableWrap     = document.getElementById('tableWrap');
+  const summaryEl     = document.getElementById('summary');
+  const summaryGrid   = document.getElementById('summaryGrid');
+
+  // reset
+  tbody.innerHTML = '';
+  summaryEl.style.display = 'none';
+  tableWrap.style.display = 'none';
+  progressWrap.style.display = 'block';
+  progressLabel.style.display = 'block';
+  progressBar.style.width = '0%';
+
+  // アニメーション演出
+  let pct = 0;
+  const interval = setInterval(() => {
+    pct += 4;
+    if (pct > 95) pct = 95;
+    progressBar.style.width = pct + '%';
+    progressLabel.textContent = `シミュレーション中... ${Math.floor(pct * TOTAL_SPINS / 100).toLocaleString()} / ${TOTAL_SPINS.toLocaleString()} G`;
+  }, 30);
+
+  // 少し遅延してシミュレーション実行（UIが更新されてから）
+  setTimeout(() => {
+    const rows = simulate();
+
+    clearInterval(interval);
+    progressBar.style.width = '100%';
+    progressLabel.textContent = `完了: ${TOTAL_SPINS.toLocaleString()} G`;
+
+    // テーブル描画（DocumentFragment で高速化）
+    const frag = document.createDocumentFragment();
+    let bigCount = 0, regCount = 0;
+    for (const r of rows) {
+      if (r.type === 'Big') bigCount++; else regCount++;
+      const tr = document.createElement('tr');
+      tr.innerHTML =
+        `<td class="td-num">${r.num}</td>` +
+        `<td class="${r.type === 'Big' ? 'td-big' : 'td-reg'}">${r.type === 'Big' ? '🔴 BIG' : '🔵 REG'}</td>` +
+        `<td class="td-spins">${r.spins}</td>` +
+        `<td class="td-total">${r.total.toLocaleString()}</td>` +
+        `<td class="td-grape">${r.grape.toLocaleString()}</td>`;
+      frag.appendChild(tr);
+    }
+    tbody.appendChild(frag);
+
+    // サマリー
+    const totalBonus = rows.length;
+    const lastGrape  = rows.length > 0 ? rows[rows.length - 1].grape : 0;
+    const avgBig = bigCount > 0 ? (TOTAL_SPINS / bigCount).toFixed(1) : '-';
+    const avgReg = regCount > 0 ? (TOTAL_SPINS / regCount).toFixed(1) : '-';
+    const avgBonus = totalBonus > 0 ? (TOTAL_SPINS / totalBonus).toFixed(1) : '-';
+
+    summaryGrid.innerHTML = `
+      <div class="summary-item"><label>総回転数</label><span class="val">${TOTAL_SPINS.toLocaleString()} G</span></div>
+      <div class="summary-item"><label>合算ボーナス</label><span class="val">${totalBonus} 回</span></div>
+      <div class="summary-item"><label>合算確率</label><span class="val">1/${avgBonus}</span></div>
+      <div class="summary-item"><label>BIG回数</label><span class="val val-big">${bigCount} 回</span></div>
+      <div class="summary-item"><label>BIG確率</label><span class="val val-big">1/${avgBig}</span></div>
+      <div class="summary-item"><label>REG回数</label><span class="val val-reg">${regCount} 回</span></div>
+      <div class="summary-item"><label>REG確率</label><span class="val val-reg">1/${avgReg}</span></div>
+      <div class="summary-item"><label>ぶどう累計</label><span class="val val-grape">${lastGrape.toLocaleString()} 回</span></div>
+      <div class="summary-item"><label>ぶどう確率</label><span class="val val-grape">1/${lastGrape > 0 ? (TOTAL_SPINS / lastGrape).toFixed(1) : '-'}</span></div>
+    `;
+
+    summaryEl.style.display = 'block';
+    tableWrap.style.display = 'block';
+
+    // スクロールをテーブル先頭へ
+    tableWrap.scrollTop = 0;
+
+    btn.disabled = false;
+    btn.textContent = '🎰 もう一度';
+  }, 500);
+}
+</script>
+</body>
+</html>
