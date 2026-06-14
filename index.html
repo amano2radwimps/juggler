@@ -174,7 +174,7 @@
   .profit-panel h2 { font-size: 0.85rem; color: #888; letter-spacing: 3px; margin-bottom: 12px; }
   .profit-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 8px; margin-bottom: 14px;
   }
   .profit-item { background: #111; border-radius: 6px; padding: 8px 10px; text-align: center; }
@@ -364,13 +364,29 @@ function updateProbInfo() {
 }
 
 // ─── シミュレーション ─────────────────────────────────────────────
-function simulate(totalSpins, d) {
+function simulate(totalSpins, d, budgetYen) {
   const rows = [];
-  let bonusCount = 0, grapeTotal = 0, cherryTotal = 0, pierrotTotal = 0, bellTotal = 0, replayTotal = 0;
+  let bonusCount = 0, grapeTotal = 0, cherryTotal = 0, cherryBonusCount = 0,
+      pierrotTotal = 0, bellTotal = 0, replayTotal = 0;
   let sinceLastBonus = 0;
+
+  // メダル管理
+  let medals      = Math.floor(budgetYen / 1000) * MEDALS_PER_1000YEN;
+  let totalSpent  = budgetYen;   // 初期予算（買い足しのたびに加算）
+  let refillCount = 0;           // 買い足し回数
 
   for (let spin = 1; spin <= totalSpins; spin++) {
     sinceLastBonus++;
+
+    // 1G消費
+    medals -= BET_PER_SPIN;
+
+    // メダルが0以下になったら46枚買い足し（1000円）
+    if (medals <= 0) {
+      medals     += MEDALS_PER_1000YEN;
+      totalSpent += 1000;
+      refillCount++;
+    }
 
     // ボーナス抽選（1乱数でBIG/REG/ハズレを振り分け）
     const r = Math.random();
@@ -380,7 +396,12 @@ function simulate(totalSpins, d) {
 
     if (bonusType) {
       // ボーナス成立スピン: チェリー重複のみあり、他役とは重複しない
-      if (Math.random() < d.pCherry) cherryTotal++;
+      if (Math.random() < d.pCherry) {
+        cherryTotal++;
+        cherryBonusCount++;
+        medals += CHERRY_PAYOUT;
+      }
+      medals += bonusType === 'Big' ? BIG_PAYOUT : REG_PAYOUT;
       bonusCount++;
       rows.push({
         num: bonusCount,
@@ -392,34 +413,30 @@ function simulate(totalSpins, d) {
       sinceLastBonus = 0;
     } else {
       // 通常スピン: 全小役を独立抽選
-      if (Math.random() < P_REPLAY)   replayTotal++;
-      if (Math.random() < d.pGrape)   grapeTotal++;
-      if (Math.random() < d.pCherry)  cherryTotal++;
-      if (Math.random() < d.pPierrot) pierrotTotal++;
-      if (Math.random() < d.pBell)    bellTotal++;
+      if (Math.random() < P_REPLAY)   { replayTotal++;  medals += BET_PER_SPIN;    }
+      if (Math.random() < d.pGrape)   { grapeTotal++;   medals += GRAPE_PAYOUT;    }
+      if (Math.random() < d.pCherry)  { cherryTotal++;  medals += CHERRY_PAYOUT;   }
+      if (Math.random() < d.pPierrot) { pierrotTotal++; medals += PIERROT_PAYOUT;  }
+      if (Math.random() < d.pBell)    { bellTotal++;    medals += BELL_PAYOUT;     }
     }
   }
 
-  return { rows, grapeTotal, cherryTotal, pierrotTotal, bellTotal, replayTotal };
+  return {
+    rows, grapeTotal, cherryTotal, cherryBonusCount,
+    pierrotTotal, bellTotal, replayTotal,
+    finalMedals: Math.max(0, medals), totalSpent, refillCount,
+  };
 }
 
-function calcProfit(rows, totalSpins, budgetYen, grapeTotal, cherryTotal, pierrotTotal, bellTotal, replayTotal) {
+function calcProfit(rows, totalSpent, finalMedals) {
   let bigCount = 0, regCount = 0;
   for (const r of rows) { if (r.type === 'Big') bigCount++; else regCount++; }
 
-  const paidOut = bigCount * BIG_PAYOUT + regCount * REG_PAYOUT
-                + grapeTotal   * GRAPE_PAYOUT
-                + cherryTotal  * CHERRY_PAYOUT
-                + pierrotTotal * PIERROT_PAYOUT
-                + bellTotal    * BELL_PAYOUT
-                + replayTotal  * BET_PER_SPIN;  // リプレーは賭け枚数が戻る
-  const consumed   = totalSpins * BET_PER_SPIN;
-  const diffMedals = paidOut - consumed;
+  // 換金: 50枚 = 1000円（プラス時の等価交換レート）
+  const cashOutYen = Math.floor(finalMedals / 50) * 1000;
+  const profitYen  = cashOutYen - totalSpent;
 
-  const startMedals = Math.floor(budgetYen / 1000) * MEDALS_PER_1000YEN;
-  const profitYen   = Math.round((diffMedals / MEDALS_PER_1000YEN) * 1000);
-
-  return { bigCount, regCount, diffMedals, startMedals, profitYen };
+  return { bigCount, regCount, cashOutYen, profitYen };
 }
 
 // ─── メイン ──────────────────────────────────────────────────────
@@ -459,29 +476,35 @@ function startSimulation() {
   }, 30);
 
   setTimeout(() => {
-    const { rows, grapeTotal, cherryTotal, pierrotTotal, bellTotal, replayTotal } = simulate(totalSpins, d);
-    const { bigCount, regCount, diffMedals, startMedals, profitYen } =
-      calcProfit(rows, totalSpins, budgetYen, grapeTotal, cherryTotal, pierrotTotal, bellTotal, replayTotal);
+    const {
+      rows, grapeTotal, cherryTotal, cherryBonusCount,
+      pierrotTotal, bellTotal, replayTotal,
+      finalMedals, totalSpent, refillCount,
+    } = simulate(totalSpins, d, budgetYen);
+    const { bigCount, regCount, cashOutYen, profitYen } =
+      calcProfit(rows, totalSpent, finalMedals);
 
     clearInterval(interval);
     progressBar.style.width = '100%';
     progressLabel.textContent = `完了: ${totalSpins.toLocaleString()} G`;
 
     // 収支パネル
-    const endMedals   = startMedals + diffMedals;
     const sign        = profitYen >= 0 ? '+' : '';
     const resultClass = profitYen > 0 ? 'plus' : profitYen < 0 ? 'minus' : 'zero';
+    const refillYen   = refillCount * 1000;
 
     profitGrid.innerHTML = `
-      <div class="profit-item"><label>予算</label><span class="pval">${budgetYen.toLocaleString()} 円</span></div>
-      <div class="profit-item"><label>持ちメダル</label><span class="pval">${startMedals.toLocaleString()} 枚</span></div>
-      <div class="profit-item"><label>差枚数</label><span class="pval" style="color:${diffMedals>=0?'#00ff55':'#ff4422'}">${diffMedals>=0?'+':''}${diffMedals.toLocaleString()} 枚</span></div>
-      <div class="profit-item"><label>最終メダル</label><span class="pval">${Math.max(0,endMedals).toLocaleString()} 枚</span></div>
+      <div class="profit-item"><label>初期予算</label><span class="pval">${budgetYen.toLocaleString()} 円</span></div>
+      <div class="profit-item"><label>買い足し</label><span class="pval" style="color:#ff9944">${refillYen.toLocaleString()} 円（${refillCount}回）</span></div>
+      <div class="profit-item"><label>総投資額</label><span class="pval">${totalSpent.toLocaleString()} 円</span></div>
+      <div class="profit-item"><label>残メダル</label><span class="pval">${finalMedals.toLocaleString()} 枚</span></div>
+      <div class="profit-item"><label>換金額</label><span class="pval" style="color:#ffd700">${cashOutYen.toLocaleString()} 円</span></div>
+      <div class="profit-item"><label>換金レート</label><span class="pval" style="color:#888">50枚 = 1,000円</span></div>
     `;
     profitResult.className = `profit-result ${resultClass}`;
     profitResult.innerHTML = `
       収支: ${sign}${profitYen.toLocaleString()} 円
-      <small>設定${currentSetting}（機械割${d.rtp}）・等価交換（${MEDALS_PER_1000YEN}枚 = 1,000円）</small>
+      <small>設定${currentSetting}（機械割${d.rtp}）・買い: ${MEDALS_PER_1000YEN}枚/1,000円 ／ 換金: 50枚/1,000円</small>
     `;
     profitPanel.style.display = 'block';
 
@@ -514,6 +537,8 @@ function startSimulation() {
       <div class="summary-item"><label>ぶどう確率</label><span class="val val-grape">1/${f(grapeTotal, totalSpins)}</span></div>
       <div class="summary-item"><label>チェリー累計</label><span class="val val-cherry">${cherryTotal.toLocaleString()} 回</span></div>
       <div class="summary-item"><label>チェリー確率</label><span class="val val-cherry">1/${f(cherryTotal, totalSpins)}</span></div>
+      <div class="summary-item"><label>チェリー重複</label><span class="val val-cherry">${cherryBonusCount.toLocaleString()} 回</span></div>
+      <div class="summary-item"><label>重複確率</label><span class="val val-cherry">1/${f(cherryBonusCount, totalSpins)}</span></div>
       <div class="summary-item"><label>ピエロ累計</label><span class="val val-pierrot">${pierrotTotal.toLocaleString()} 回</span></div>
       <div class="summary-item"><label>ベル累計</label><span class="val val-bell">${bellTotal.toLocaleString()} 回</span></div>
       <div class="summary-item"><label>リプレー累計</label><span class="val">${replayTotal.toLocaleString()} 回</span></div>
