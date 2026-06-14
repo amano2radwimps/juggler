@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>マイジャグラー 設定6 シミュレーター</title>
+<title>マイジャグラー5 シミュレーター</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -26,56 +26,97 @@
     margin-bottom: 6px;
     letter-spacing: 4px;
   }
-
   .subtitle {
     color: #aaa;
     font-size: 0.85rem;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
     letter-spacing: 2px;
   }
 
+  /* 設定選択 */
+  .setting-panel {
+    background: #111;
+    border: 1px solid #2a2a4a;
+    border-radius: 10px;
+    padding: 14px 24px;
+    margin-bottom: 16px;
+    max-width: 700px;
+    width: 100%;
+  }
+  .setting-panel .panel-label {
+    font-size: 0.72rem;
+    color: #888;
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+  }
+  .setting-btns {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .setting-btn {
+    flex: 1;
+    min-width: 60px;
+    padding: 10px 4px;
+    border: 1px solid #444;
+    border-radius: 6px;
+    background: #0a0a1a;
+    color: #aaa;
+    font-family: 'Courier New', monospace;
+    font-size: 0.85rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+  }
+  .setting-btn:hover { border-color: #ff4da6; color: #ff4da6; }
+  .setting-btn.active {
+    background: linear-gradient(135deg, #ff4da6, #c0006a);
+    border-color: #ff4da6;
+    color: #fff;
+    box-shadow: 0 0 10px #ff4da6aa;
+  }
+  .setting-btn .btn-rtp {
+    display: block;
+    font-size: 0.62rem;
+    font-weight: normal;
+    margin-top: 2px;
+    opacity: 0.8;
+  }
+
+  /* 確率表示 */
   .prob-info {
     background: #111;
     border: 1px solid #333;
     border-radius: 8px;
-    padding: 12px 24px;
-    margin-bottom: 20px;
-    font-size: 0.8rem;
+    padding: 10px 20px;
+    margin-bottom: 16px;
+    font-size: 0.78rem;
     color: #888;
     text-align: center;
-    line-height: 1.8;
+    line-height: 2;
     max-width: 700px;
     width: 100%;
   }
   .prob-info span { color: #ffd700; }
+  .prob-row { display: flex; justify-content: center; flex-wrap: wrap; gap: 4px 16px; }
 
-  /* 入力フォーム */
+  /* 入力パネル */
   .input-panel {
     background: #111;
     border: 1px solid #2a2a4a;
     border-radius: 10px;
-    padding: 18px 28px;
+    padding: 16px 24px;
     margin-bottom: 20px;
     max-width: 700px;
     width: 100%;
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 14px 24px;
+    gap: 12px 24px;
   }
-  .input-group {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-  .input-group label {
-    font-size: 0.75rem;
-    color: #aaa;
-    letter-spacing: 1px;
-  }
-  .input-group .hint {
-    font-size: 0.68rem;
-    color: #555;
-  }
+  .input-group { display: flex; flex-direction: column; gap: 5px; }
+  .input-group label { font-size: 0.75rem; color: #aaa; letter-spacing: 1px; }
+  .input-group .hint { font-size: 0.68rem; color: #555; }
   .input-group input {
     background: #0a0a1a;
     border: 1px solid #444;
@@ -104,153 +145,96 @@
     transition: all 0.2s;
     margin-bottom: 24px;
   }
-  .start-btn:hover {
-    transform: scale(1.05);
-    box-shadow: 0 0 32px #ff4da6cc;
-  }
-  .start-btn:disabled {
-    background: #444;
-    box-shadow: none;
-    cursor: not-allowed;
-    transform: none;
-  }
+  .start-btn:hover { transform: scale(1.05); box-shadow: 0 0 32px #ff4da6cc; }
+  .start-btn:disabled { background: #444; box-shadow: none; cursor: not-allowed; transform: none; }
 
   .progress-bar-wrap {
-    width: 100%;
-    max-width: 700px;
-    background: #111;
-    border-radius: 8px;
-    height: 10px;
-    margin-bottom: 8px;
-    overflow: hidden;
-    display: none;
+    width: 100%; max-width: 700px;
+    background: #111; border-radius: 8px; height: 10px;
+    margin-bottom: 8px; overflow: hidden; display: none;
   }
   .progress-bar {
     height: 100%;
     background: linear-gradient(90deg, #ff4da6, #ffd700);
-    width: 0%;
-    transition: width 0.05s linear;
+    width: 0%; transition: width 0.05s linear;
   }
-  .progress-label {
-    font-size: 0.8rem;
-    color: #aaa;
-    margin-bottom: 16px;
-    display: none;
-  }
+  .progress-label { font-size: 0.8rem; color: #aaa; margin-bottom: 16px; display: none; }
 
   /* 収支パネル */
   .profit-panel {
     display: none;
     background: #0d0d1a;
     border-radius: 10px;
-    padding: 18px 28px;
+    padding: 18px 24px;
     margin-bottom: 16px;
     max-width: 700px;
     width: 100%;
     border: 2px solid #333;
   }
-  .profit-panel h2 {
-    font-size: 0.85rem;
-    color: #888;
-    letter-spacing: 3px;
-    margin-bottom: 12px;
-  }
+  .profit-panel h2 { font-size: 0.85rem; color: #888; letter-spacing: 3px; margin-bottom: 12px; }
   .profit-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
-    margin-bottom: 14px;
+    gap: 8px; margin-bottom: 14px;
   }
-  .profit-item {
-    background: #111;
-    border-radius: 6px;
-    padding: 8px 10px;
-    text-align: center;
-  }
-  .profit-item label { font-size: 0.68rem; color: #666; display: block; margin-bottom: 4px; }
-  .profit-item .pval { font-size: 0.9rem; font-weight: bold; color: #fff; }
-
+  .profit-item { background: #111; border-radius: 6px; padding: 8px 10px; text-align: center; }
+  .profit-item label { font-size: 0.65rem; color: #666; display: block; margin-bottom: 4px; }
+  .profit-item .pval { font-size: 0.88rem; font-weight: bold; color: #fff; }
   .profit-result {
-    text-align: center;
-    padding: 14px;
-    border-radius: 8px;
-    font-size: 1.5rem;
-    font-weight: bold;
-    letter-spacing: 2px;
+    text-align: center; padding: 14px; border-radius: 8px;
+    font-size: 1.5rem; font-weight: bold; letter-spacing: 2px;
   }
   .profit-result.plus  { background: #001a00; border: 1px solid #00cc44; color: #00ff55; text-shadow: 0 0 16px #00ff55; }
   .profit-result.minus { background: #1a0000; border: 1px solid #cc2200; color: #ff4422; text-shadow: 0 0 16px #ff4422; }
   .profit-result.zero  { background: #111; border: 1px solid #555; color: #aaa; }
   .profit-result small { display: block; font-size: 0.75rem; color: inherit; opacity: 0.75; margin-top: 4px; letter-spacing: 1px; }
 
+  /* サマリー */
   .summary {
     display: none;
     background: #111;
     border: 1px solid #ff4da666;
     border-radius: 10px;
-    padding: 16px 28px;
+    padding: 16px 24px;
     margin-bottom: 20px;
     max-width: 700px;
     width: 100%;
-    line-height: 2;
   }
-  .summary h2 {
-    color: #ffd700;
-    text-shadow: 0 0 10px #ffd700;
-    font-size: 1rem;
-    letter-spacing: 3px;
-    margin-bottom: 8px;
-  }
+  .summary h2 { color: #ffd700; text-shadow: 0 0 10px #ffd700; font-size: 1rem; letter-spacing: 3px; margin-bottom: 10px; }
   .summary-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 8px 16px;
-    font-size: 0.82rem;
+    gap: 6px 12px; font-size: 0.8rem;
   }
-  .summary-item label { color: #888; display: block; font-size: 0.72rem; }
-  .summary-item .val { color: #fff; font-size: 1rem; font-weight: bold; }
-  .val-big { color: #ff4da6; }
-  .val-reg { color: #4db8ff; }
-  .val-grape { color: #c084fc; }
+  .summary-item label { color: #888; display: block; font-size: 0.7rem; }
+  .summary-item .val { color: #fff; font-size: 0.95rem; font-weight: bold; }
+  .val-big    { color: #ff4da6; }
+  .val-reg    { color: #4db8ff; }
+  .val-grape  { color: #c084fc; }
+  .val-cherry { color: #ff9944; }
+  .val-bell   { color: #ffd700; }
+  .val-pierrot{ color: #44ffcc; }
 
+  /* テーブル */
   .table-wrap {
-    width: 100%;
-    max-width: 700px;
-    max-height: 520px;
-    overflow-y: auto;
-    border: 1px solid #333;
-    border-radius: 10px;
-    display: none;
+    width: 100%; max-width: 700px; max-height: 520px;
+    overflow-y: auto; border: 1px solid #333; border-radius: 10px; display: none;
   }
   .table-wrap::-webkit-scrollbar { width: 6px; }
   .table-wrap::-webkit-scrollbar-track { background: #111; }
   .table-wrap::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
-
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.82rem;
-  }
+  table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
   thead th {
-    background: #1a1a2e;
-    color: #ffd700;
-    padding: 10px 8px;
-    text-align: center;
+    background: #1a1a2e; color: #ffd700;
+    padding: 10px 6px; text-align: center;
     border-bottom: 1px solid #333;
-    position: sticky;
-    top: 0;
-    z-index: 1;
-    font-size: 0.75rem;
-    letter-spacing: 1px;
+    position: sticky; top: 0; z-index: 1;
+    font-size: 0.72rem; letter-spacing: 1px;
   }
   tbody tr:nth-child(even) { background: #0d0d1a; }
   tbody tr:nth-child(odd)  { background: #111122; }
   tbody tr:hover { background: #1e1e3a; }
-  td {
-    padding: 6px 8px;
-    text-align: center;
-    border-bottom: 1px solid #1a1a2a;
-  }
+  td { padding: 6px 6px; text-align: center; border-bottom: 1px solid #1a1a2a; }
   .td-num    { color: #888; }
   .td-big    { color: #ff4da6; font-weight: bold; text-shadow: 0 0 6px #ff4da6; }
   .td-reg    { color: #4db8ff; font-weight: bold; text-shadow: 0 0 6px #4db8ff; }
@@ -261,15 +245,24 @@
 </head>
 <body>
 
-<h1>🎰 マイジャグラー 🎰</h1>
-<div class="subtitle">設定6 シミュレーター</div>
+<h1>🎰 マイジャグラー5 🎰</h1>
+<div class="subtitle">設定別シミュレーター</div>
 
-<div class="prob-info">
-  BIG確率: <span>1/240.9</span> &nbsp;|&nbsp;
-  REG確率: <span>1/240.9</span> &nbsp;|&nbsp;
-  合成確率: <span>1/120.5</span> &nbsp;|&nbsp;
-  ぶどう: <span>1/6.5</span>
+<!-- 設定選択 -->
+<div class="setting-panel">
+  <div class="panel-label">🎛 設 定 選 択</div>
+  <div class="setting-btns" id="settingBtns">
+    <button class="setting-btn" data-s="1" onclick="selectSetting(1)">設定1<span class="btn-rtp">97.0%</span></button>
+    <button class="setting-btn" data-s="2" onclick="selectSetting(2)">設定2<span class="btn-rtp">98.0%</span></button>
+    <button class="setting-btn" data-s="3" onclick="selectSetting(3)">設定3<span class="btn-rtp">99.9%</span></button>
+    <button class="setting-btn" data-s="4" onclick="selectSetting(4)">設定4<span class="btn-rtp">102.8%</span></button>
+    <button class="setting-btn" data-s="5" onclick="selectSetting(5)">設定5<span class="btn-rtp">105.3%</span></button>
+    <button class="setting-btn active" data-s="6" onclick="selectSetting(6)">設定6<span class="btn-rtp">109.4%</span></button>
+  </div>
 </div>
+
+<!-- 確率表示 -->
+<div class="prob-info" id="probInfo"></div>
 
 <!-- 入力パネル -->
 <div class="input-panel">
@@ -299,11 +292,13 @@
   <div class="profit-result" id="profitResult"></div>
 </div>
 
+<!-- ボーナスサマリー -->
 <div class="summary" id="summary">
-  <h2>✨ ボーナス結果 ✨</h2>
+  <h2>✨ ボーナス・小役結果 ✨</h2>
   <div class="summary-grid" id="summaryGrid"></div>
 </div>
 
+<!-- ボーナス一覧 -->
 <div class="table-wrap" id="tableWrap">
   <table>
     <thead>
@@ -320,36 +315,76 @@
 </div>
 
 <script>
-// マイジャグラー 設定6 確率
-const P_BIG   = 1 / 240.9;
-const P_REG   = 1 / 240.9;
-const P_GRAPE = 1 / 6.5;
+// ─── マイジャグラー5 設定別確率テーブル ───────────────────────────
+const SETTING_DATA = {
+  1: { pBig:1/273.1, pReg:1/409.6, pCherry:1/38.43, pGrape:1/5.90, pPierrot:1/1025.98, pBell:1/1022.83, rtp:'97.0%'  },
+  2: { pBig:1/270.8, pReg:1/385.5, pCherry:1/38.29, pGrape:1/5.88, pPierrot:1/1020.75, pBell:1/1037.33, rtp:'98.0%'  },
+  3: { pBig:1/266.4, pReg:1/336.1, pCherry:1/37.04, pGrape:1/5.82, pPierrot:1/1017.28, pBell:1/1024.93, rtp:'99.9%'  },
+  4: { pBig:1/254.0, pReg:1/290.0, pCherry:1/35.89, pGrape:1/5.81, pPierrot:1/1055.21, pBell:1/1015.91, rtp:'102.8%' },
+  5: { pBig:1/240.1, pReg:1/268.6, pCherry:1/35.82, pGrape:1/5.79, pPierrot:1/1016.94, pBell:1/1033.40, rtp:'105.3%' },
+  6: { pBig:1/229.1, pReg:1/229.1, pCherry:1/35.79, pGrape:1/5.69, pPierrot:1/1036.26, pBell:1/1014.53, rtp:'109.4%' },
+};
 
-// 差枚数計算定数（等価交換）
-const MEDALS_PER_1000YEN = 46;   // 千円46枚貸
-const BIG_PAYOUT  = 240;          // BIG純増枚数
-const REG_PAYOUT  = 96;           // REG純増枚数
-const GRAPE_PAYOUT = 6;           // ぶどう払い出し枚数
-const BET_PER_SPIN = 3;           // 1G消費枚数
+// 払い出し枚数定数（等価交換）
+const MEDALS_PER_1000YEN = 46;
+const BIG_PAYOUT    = 240;  // BIG純増
+const REG_PAYOUT    = 96;   // REG純増
+const GRAPE_PAYOUT  = 8;    // ぶどう払い出し
+const CHERRY_PAYOUT = 1;    // チェリー払い出し
+const PIERROT_PAYOUT= 10;   // ピエロ払い出し
+const BELL_PAYOUT   = 14;   // ベル払い出し
+const BET_PER_SPIN  = 3;    // 毎ゲーム消費枚数
 
-function simulate(totalSpins) {
+let currentSetting = 6;
+
+// ─── 設定選択 ────────────────────────────────────────────────────
+function selectSetting(s) {
+  currentSetting = s;
+  document.querySelectorAll('.setting-btn').forEach(b => {
+    b.classList.toggle('active', parseInt(b.dataset.s) === s);
+  });
+  updateProbInfo();
+}
+
+function updateProbInfo() {
+  const d = SETTING_DATA[currentSetting];
+  const combined = 1 / (d.pBig + d.pReg);
+  document.getElementById('probInfo').innerHTML = `
+    <div class="prob-row">
+      <span>BIG: <span>1/${(1/d.pBig).toFixed(1)}</span></span>
+      <span>REG: <span>1/${(1/d.pReg).toFixed(1)}</span></span>
+      <span>合成: <span>1/${combined.toFixed(1)}</span></span>
+      <span>機械割: <span>${d.rtp}</span></span>
+    </div>
+    <div class="prob-row" style="margin-top:4px; font-size:0.72rem;">
+      <span>ぶどう: <span>1/${(1/d.pGrape).toFixed(2)}</span></span>
+      <span>チェリー: <span>1/${(1/d.pCherry).toFixed(2)}</span></span>
+      <span>ピエロ: <span>1/${(1/d.pPierrot).toFixed(1)}</span></span>
+      <span>ベル: <span>1/${(1/d.pBell).toFixed(1)}</span></span>
+    </div>
+  `;
+}
+
+// ─── シミュレーション ─────────────────────────────────────────────
+function simulate(totalSpins, d) {
   const rows = [];
-  let bonusCount = 0;
-  let grapeTotal = 0;
+  let bonusCount = 0, grapeTotal = 0, cherryTotal = 0, pierrotTotal = 0, bellTotal = 0;
   let sinceLastBonus = 0;
 
   for (let spin = 1; spin <= totalSpins; spin++) {
     sinceLastBonus++;
 
-    if (Math.random() < P_GRAPE) grapeTotal++;
+    // 小役抽選（各独立）
+    if (Math.random() < d.pGrape)   grapeTotal++;
+    if (Math.random() < d.pCherry)  cherryTotal++;
+    if (Math.random() < d.pPierrot) pierrotTotal++;
+    if (Math.random() < d.pBell)    bellTotal++;
 
+    // ボーナス抽選（1乱数でBIG/REG/ハズレを振り分け）
     const r = Math.random();
     let bonusType = null;
-    if (r < P_BIG) {
-      bonusType = 'Big';
-    } else if (r < P_BIG + P_REG) {
-      bonusType = 'Reg';
-    }
+    if      (r < d.pBig)           bonusType = 'Big';
+    else if (r < d.pBig + d.pReg)  bonusType = 'Reg';
 
     if (bonusType) {
       bonusCount++;
@@ -364,37 +399,36 @@ function simulate(totalSpins) {
     }
   }
 
-  return rows;
+  return { rows, grapeTotal, cherryTotal, pierrotTotal, bellTotal };
 }
 
-function calcProfit(rows, totalSpins, budgetYen) {
+function calcProfit(rows, totalSpins, budgetYen, grapeTotal, cherryTotal, pierrotTotal, bellTotal) {
   let bigCount = 0, regCount = 0;
-  const grapeTotal = rows.length > 0 ? rows[rows.length - 1].grape : 0;
-  for (const r of rows) {
-    if (r.type === 'Big') bigCount++; else regCount++;
-  }
+  for (const r of rows) { if (r.type === 'Big') bigCount++; else regCount++; }
 
-  // 差枚数 = ボーナス払い出し + ぶどう払い出し - 総消費枚数
-  const paidOut   = bigCount * BIG_PAYOUT + regCount * REG_PAYOUT + grapeTotal * GRAPE_PAYOUT;
-  const consumed  = totalSpins * BET_PER_SPIN;
+  const paidOut = bigCount * BIG_PAYOUT + regCount * REG_PAYOUT
+                + grapeTotal  * GRAPE_PAYOUT
+                + cherryTotal * CHERRY_PAYOUT
+                + pierrotTotal* PIERROT_PAYOUT
+                + bellTotal   * BELL_PAYOUT;
+  const consumed   = totalSpins * BET_PER_SPIN;
   const diffMedals = paidOut - consumed;
 
-  // 予算を枚数換算
   const startMedals = Math.floor(budgetYen / 1000) * MEDALS_PER_1000YEN;
+  const profitYen   = Math.round((diffMedals / MEDALS_PER_1000YEN) * 1000);
 
-  // 等価交換: 差枚数 ÷ 46 × 1000円
-  const profitYen = Math.round((diffMedals / MEDALS_PER_1000YEN) * 1000);
-
-  return { bigCount, regCount, grapeTotal, diffMedals, startMedals, profitYen };
+  return { bigCount, regCount, diffMedals, startMedals, profitYen };
 }
 
+// ─── メイン ──────────────────────────────────────────────────────
 function startSimulation() {
   const btn        = document.getElementById('startBtn');
   const budgetYen  = parseInt(document.getElementById('budgetInput').value, 10) || 30000;
   const totalSpins = parseInt(document.getElementById('spinInput').value, 10) || 8000;
-
   if (budgetYen <= 0 || totalSpins <= 0) return;
+
   btn.disabled = true;
+  const d = SETTING_DATA[currentSetting];
 
   const progressWrap  = document.getElementById('progressWrap');
   const progressBar   = document.getElementById('progressBar');
@@ -417,15 +451,15 @@ function startSimulation() {
 
   let pct = 0;
   const interval = setInterval(() => {
-    pct += 4;
-    if (pct > 95) pct = 95;
+    pct = Math.min(pct + 4, 95);
     progressBar.style.width = pct + '%';
     progressLabel.textContent = `シミュレーション中... ${Math.floor(pct * totalSpins / 100).toLocaleString()} / ${totalSpins.toLocaleString()} G`;
   }, 30);
 
   setTimeout(() => {
-    const rows = simulate(totalSpins);
-    const { bigCount, regCount, grapeTotal, diffMedals, startMedals, profitYen } = calcProfit(rows, totalSpins, budgetYen);
+    const { rows, grapeTotal, cherryTotal, pierrotTotal, bellTotal } = simulate(totalSpins, d);
+    const { bigCount, regCount, diffMedals, startMedals, profitYen } =
+      calcProfit(rows, totalSpins, budgetYen, grapeTotal, cherryTotal, pierrotTotal, bellTotal);
 
     clearInterval(interval);
     progressBar.style.width = '100%';
@@ -445,7 +479,7 @@ function startSimulation() {
     profitResult.className = `profit-result ${resultClass}`;
     profitResult.innerHTML = `
       収支: ${sign}${profitYen.toLocaleString()} 円
-      <small>等価交換（${MEDALS_PER_1000YEN}枚 = 1,000円）</small>
+      <small>設定${currentSetting}（機械割${d.rtp}）・等価交換（${MEDALS_PER_1000YEN}枚 = 1,000円）</small>
     `;
     profitPanel.style.display = 'block';
 
@@ -455,7 +489,7 @@ function startSimulation() {
       const tr = document.createElement('tr');
       tr.innerHTML =
         `<td class="td-num">${r.num}</td>` +
-        `<td class="${r.type === 'Big' ? 'td-big' : 'td-reg'}">${r.type === 'Big' ? '🔴 BIG' : '🔵 REG'}</td>` +
+        `<td class="${r.type==='Big'?'td-big':'td-reg'}">${r.type==='Big'?'🔴 BIG':'🔵 REG'}</td>` +
         `<td class="td-spins">${r.spins}</td>` +
         `<td class="td-total">${r.total.toLocaleString()}</td>` +
         `<td class="td-grape">${r.grape.toLocaleString()}</td>`;
@@ -465,21 +499,21 @@ function startSimulation() {
 
     // サマリー
     const totalBonus = rows.length;
-    const avgBig   = bigCount   > 0 ? (totalSpins / bigCount).toFixed(1)   : '-';
-    const avgReg   = regCount   > 0 ? (totalSpins / regCount).toFixed(1)   : '-';
-    const avgBonus = totalBonus > 0 ? (totalSpins / totalBonus).toFixed(1) : '-';
-    const avgGrape = grapeTotal > 0 ? (totalSpins / grapeTotal).toFixed(1) : '-';
-
+    const f = (n, d2) => n > 0 ? (d2 / n).toFixed(1) : '-';
     summaryGrid.innerHTML = `
       <div class="summary-item"><label>総回転数</label><span class="val">${totalSpins.toLocaleString()} G</span></div>
       <div class="summary-item"><label>合算ボーナス</label><span class="val">${totalBonus} 回</span></div>
-      <div class="summary-item"><label>合算確率</label><span class="val">1/${avgBonus}</span></div>
+      <div class="summary-item"><label>合算確率</label><span class="val">1/${f(totalBonus, totalSpins)}</span></div>
       <div class="summary-item"><label>BIG回数</label><span class="val val-big">${bigCount} 回</span></div>
-      <div class="summary-item"><label>BIG確率</label><span class="val val-big">1/${avgBig}</span></div>
+      <div class="summary-item"><label>BIG確率</label><span class="val val-big">1/${f(bigCount, totalSpins)}</span></div>
       <div class="summary-item"><label>REG回数</label><span class="val val-reg">${regCount} 回</span></div>
-      <div class="summary-item"><label>REG確率</label><span class="val val-reg">1/${avgReg}</span></div>
+      <div class="summary-item"><label>REG確率</label><span class="val val-reg">1/${f(regCount, totalSpins)}</span></div>
       <div class="summary-item"><label>ぶどう累計</label><span class="val val-grape">${grapeTotal.toLocaleString()} 回</span></div>
-      <div class="summary-item"><label>ぶどう確率</label><span class="val val-grape">1/${avgGrape}</span></div>
+      <div class="summary-item"><label>ぶどう確率</label><span class="val val-grape">1/${f(grapeTotal, totalSpins)}</span></div>
+      <div class="summary-item"><label>チェリー累計</label><span class="val val-cherry">${cherryTotal.toLocaleString()} 回</span></div>
+      <div class="summary-item"><label>チェリー確率</label><span class="val val-cherry">1/${f(cherryTotal, totalSpins)}</span></div>
+      <div class="summary-item"><label>ピエロ累計</label><span class="val val-pierrot">${pierrotTotal.toLocaleString()} 回</span></div>
+      <div class="summary-item"><label>ベル累計</label><span class="val val-bell">${bellTotal.toLocaleString()} 回</span></div>
     `;
 
     summaryEl.style.display = 'block';
@@ -490,6 +524,9 @@ function startSimulation() {
     btn.textContent = '🎰 もう一度';
   }, 500);
 }
+
+// 初期化
+updateProbInfo();
 </script>
 </body>
 </html>
