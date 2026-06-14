@@ -305,6 +305,8 @@
         <th>大当たり<br>遊戯数</th>
         <th>遊戯数<br>合計</th>
         <th>ぶどう<br>累計</th>
+        <th>獲得<br>差枚数</th>
+        <th>金額</th>
       </tr>
     </thead>
     <tbody id="tbody"></tbody>
@@ -372,6 +374,7 @@ function simulate(totalSpins, d, budgetYen) {
 
   // メダル管理
   let medals      = Math.floor(budgetYen / 1000) * MEDALS_PER_1000YEN;
+  const startMedals = medals;    // 初期枚数（差枚数計算の基準）
   let totalSpent  = budgetYen;   // 初期予算（買い足しのたびに加算）
   let refillCount = 0;           // 買い足し回数
 
@@ -409,6 +412,8 @@ function simulate(totalSpins, d, budgetYen) {
         spins: sinceLastBonus,
         total: spin,
         grape: grapeTotal,
+        // 差枚数 = 現在枚数 - 購入枚数合計（初期＋買い足し分）
+        diffMedals: medals - startMedals - refillCount * MEDALS_PER_1000YEN,
       });
       sinceLastBonus = 0;
     } else {
@@ -513,11 +518,17 @@ function startSimulation() {
     for (const r of rows) {
       const tr = document.createElement('tr');
       tr.innerHTML =
+        const diffYen = Math.round(r.diffMedals / MEDALS_PER_1000YEN * 1000);
+        const diffSign = r.diffMedals >= 0 ? '+' : '';
+        const diffColor = r.diffMedals > 0 ? '#00ff55' : r.diffMedals < 0 ? '#ff4422' : '#aaa';
+        tr.innerHTML =
         `<td class="td-num">${r.num}</td>` +
         `<td class="${r.type==='Big'?'td-big':'td-reg'}">${r.type==='Big'?'🔴 BIG':'🔵 REG'}</td>` +
         `<td class="td-spins">${r.spins}</td>` +
         `<td class="td-total">${r.total.toLocaleString()}</td>` +
-        `<td class="td-grape">${r.grape.toLocaleString()}</td>`;
+        `<td class="td-grape">${r.grape.toLocaleString()}</td>` +
+        `<td style="color:${diffColor};font-weight:bold">${diffSign}${r.diffMedals.toLocaleString()}</td>` +
+        `<td style="color:${diffColor};font-weight:bold">${diffSign}${diffYen.toLocaleString()}円</td>`;
       frag.appendChild(tr);
     }
     tbody.appendChild(frag);
