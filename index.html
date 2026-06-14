@@ -517,7 +517,6 @@ function startSimulation() {
     const frag = document.createDocumentFragment();
     for (const r of rows) {
       const tr = document.createElement('tr');
-      tr.innerHTML =
         const diffYen = Math.round(r.diffMedals / MEDALS_PER_1000YEN * 1000);
         const diffSign = r.diffMedals >= 0 ? '+' : '';
         const diffColor = r.diffMedals > 0 ? '#00ff55' : r.diffMedals < 0 ? '#ff4422' : '#aaa';
